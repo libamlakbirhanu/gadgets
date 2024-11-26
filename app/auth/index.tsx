@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -8,20 +8,67 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Alert,
+  AppState,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { supabase } from "../../lib/supabase";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, type LoginFormData } from "../../lib/schemas";
+import { Toast } from "react-native-toast-notifications";
+
+// Tells Supabase Auth to continuously refresh the session automatically if
+// the app is in the foreground. When this is added, you will continue to receive
+// `onAuthStateChange` events with the `TOKEN_REFRESHED` or `SIGNED_OUT` event
+// if the user's session is terminated. This should only be registered once.
+AppState.addEventListener("change", (state) => {
+  if (state === "active") {
+    supabase.auth.startAutoRefresh();
+  } else {
+    supabase.auth.stopAutoRefresh();
+  }
+});
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const router = useRouter();
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleSubmit = () => {
-    // Add your authentication logic here
-    console.log("Form submitted:", { email, password });
-    // On successful auth, navigate to home
-    router.push("/");
+  React.useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      console.log("Form validation errors:", errors);
+    }
+  }, [errors]);
+
+  const handleLogin = async (data: LoginFormData) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        console.error("Supabase login error:", error);
+        throw error;
+      }
+
+      Toast.show("Login successful", {
+        type: "success",
+      });
+      router.push("/");
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    }
   };
 
   return (
@@ -42,41 +89,62 @@ export default function Auth() {
 
         {/* Form */}
         <View style={styles.formContainer}>
-          <Text style={styles.headerText}>
-            {isLogin ? "Welcome Back!" : "Create Account"}
-          </Text>
+          <Text style={styles.headerText}>Welcome Back!</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, value } }) => (
+              <>
+                <TextInput
+                  style={[styles.input, errors.email && styles.inputError]}
+                  placeholder="Email"
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                {errors.email && (
+                  <Text style={styles.errorText}>{errors.email.message}</Text>
+                )}
+              </>
+            )}
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, value } }) => (
+              <>
+                <TextInput
+                  style={[styles.input, errors.password && styles.inputError]}
+                  placeholder="Password"
+                  value={value}
+                  onChangeText={onChange}
+                  secureTextEntry
+                />
+                {errors.password && (
+                  <Text style={styles.errorText}>
+                    {errors.password.message}
+                  </Text>
+                )}
+              </>
+            )}
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-            <Text style={styles.buttonText}>
-              {isLogin ? "Sign In" : "Sign Up"}
-            </Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleSubmit(handleLogin)}
+          >
+            <Text style={styles.buttonText}>Sign In</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setIsLogin(!isLogin)}
-            style={styles.switchButton}
+            style={styles.linkButton}
+            onPress={() => router.push("/auth/signup")}
           >
-            <Text style={styles.switchText}>
-              {isLogin
-                ? "Don't have an account? Sign Up"
-                : "Already have an account? Sign In"}
+            <Text style={styles.linkText}>
+              Don't have an account? Sign up here
             </Text>
           </TouchableOpacity>
         </View>
@@ -92,7 +160,7 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     flex: 1,
-    paddingHorizontal: 20,
+    padding: 20,
     justifyContent: "center",
   },
   logoContainer: {
@@ -107,27 +175,34 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginTop: 10,
-    color: "#333",
   },
   formContainer: {
     width: "100%",
   },
   headerText: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 30,
+    marginBottom: 20,
     textAlign: "center",
-    color: "#333",
   },
   input: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#f0f0f0",
     padding: 15,
     borderRadius: 10,
-    marginBottom: 15,
-    fontSize: 16,
+    marginBottom: 5,
+  },
+  inputError: {
+    borderColor: "#ff0000",
+    borderWidth: 1,
+  },
+  errorText: {
+    color: "#ff0000",
+    fontSize: 12,
+    marginBottom: 10,
+    marginLeft: 5,
   },
   button: {
-    backgroundColor: "#8c8c8c",
+    backgroundColor: "#007AFF",
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
@@ -138,12 +213,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  switchButton: {
-    marginTop: 20,
+  linkButton: {
+    marginTop: 15,
     alignItems: "center",
   },
-  switchText: {
-    color: "#8c8c8c",
+  linkText: {
+    color: "#007AFF",
     fontSize: 14,
   },
 });

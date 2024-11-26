@@ -1,4 +1,12 @@
-import { Button, FlatList, Image, Pressable, Text, View } from "react-native";
+import {
+  Button,
+  FlatList,
+  Image,
+  Pressable,
+  Text,
+  View,
+  TouchableOpacity,
+} from "react-native";
 import { PRODUCTS } from "../../assets/products";
 import ProductCard from "../../components/product-card";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -13,6 +21,19 @@ export default function App() {
 
   return (
     <>
+      <View className="flex flex-row justify-between items-center p-4">
+        <Link href="/account" asChild>
+          <TouchableOpacity className="bg-blue-500 px-4 py-2 rounded-lg">
+            <Text className="text-white font-semibold">Login</Text>
+          </TouchableOpacity>
+        </Link>
+        <Link href="/auth/signup" asChild>
+          <TouchableOpacity className="bg-blue-500 px-4 py-2 rounded-lg">
+            <Text className="text-white font-semibold">Sign Up</Text>
+          </TouchableOpacity>
+        </Link>
+      </View>
+
       <View className="h-[250px]">
         <View className="w-full p-4 flex flex-row justify-between items-center">
           <View className="flex flex-row items-center gap-2">
