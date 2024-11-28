@@ -14,26 +14,14 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { CATEGORIES } from "../../assets/categories";
 import CategoryCard from "../../components/category-card";
 import { useStore } from "../../store/cart-store";
-import { Link } from "expo-router";
+import { Link, useRouter, useSegments } from "expo-router";
+import { useEffect } from "react";
 
 export default function App() {
   const { getItemCount } = useStore();
 
   return (
     <>
-      <View className="flex flex-row justify-between items-center p-4">
-        <Link href="/account" asChild>
-          <TouchableOpacity className="bg-blue-500 px-4 py-2 rounded-lg">
-            <Text className="text-white font-semibold">Login</Text>
-          </TouchableOpacity>
-        </Link>
-        <Link href="/auth/signup" asChild>
-          <TouchableOpacity className="bg-blue-500 px-4 py-2 rounded-lg">
-            <Text className="text-white font-semibold">Sign Up</Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
-
       <View className="h-[250px]">
         <View className="w-full p-4 flex flex-row justify-between items-center">
           <View className="flex flex-row items-center gap-2">
@@ -121,12 +109,3 @@ export default function App() {
     </>
   );
 }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: "#fff",
-//     alignItems: "center",
-//     justifyContent: "center",
-//   },
-// });
